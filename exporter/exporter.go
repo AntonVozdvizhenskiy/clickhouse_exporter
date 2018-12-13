@@ -26,6 +26,7 @@ type Exporter struct {
 	asyncMetricsURI string
 	eventsURI       string
 	partsURI        string
+	dictonaryElementCountyURI       string
 	mutex           sync.RWMutex
 	client          *http.Client
 
@@ -57,11 +58,16 @@ func NewExporter(uri url.URL, insecure bool, user, password string) *Exporter {
 	q.Set("query", "select database, table, sum(bytes) as bytes, count() as parts, sum(rows) as rows from system.parts where active = 1 group by database, table")
 	partsURI.RawQuery = q.Encode()
 	
+	dictonaryElementCountyURI := uri
+	q.Set("query", "select concat(name,'_element_count') metric, element_count  value from dictionaries")
+	dictonaryElementCountyURI.RawQuery = q.Encode()
+
 	return &Exporter{
 		metricsURI:      metricsURI.String(),
 		asyncMetricsURI: asyncMetricsURI.String(),
 		eventsURI:       eventsURI.String(),
 		partsURI:        partsURI.String(),
+		dictonaryElementCountyURI:        dictonaryElementCountyURI.String(),
 		scrapeFailures: prometheus.NewCounter(prometheus.CounterOpts{
 			Namespace: namespace,
 			Name:      "exporter_scrape_failures_total",
@@ -145,6 +151,21 @@ func (e *Exporter) collect(ch chan<- prometheus.Metric) error {
 			prometheus.CounterValue, float64(ev.value))
 		ch <- newMetric
 	}
+
+    dicts, err := e.parseKeyValueResponse(dictonaryElementCountyURI)
+	if err != nil {
+		return fmt.Errorf("Error scraping clickhouse url %v: %v", e.dictonaryElementCountyURI, err)
+	}
+
+	for _, ev := range dicts {
+		newMetric, _ := prometheus.NewConstMetric(
+			prometheus.NewDesc(
+				namespace+"_"+metricName(ev.key)+"_total",
+				"Number of "+ev.key+" total processed", []string{}, nil),
+			prometheus.CounterValue, float64(ev.value))
+		ch <- newMetric
+	}
+
 
 	parts, err := e.parsePartsResponse(e.partsURI)
 	if err != nil {
