@@ -59,7 +59,7 @@ func NewExporter(uri url.URL, insecure bool, user, password string) *Exporter {
 	partsURI.RawQuery = q.Encode()
 	
 	dictonaryElementCountyURI := uri
-	q.Set("query", "select concat(name,'_element_count') metric, element_count  value from dictionaries")
+	q.Set("query", "select concat(name,'_element_count') metric, element_count value from system.dictionaries")
 	dictonaryElementCountyURI.RawQuery = q.Encode()
 
 	return &Exporter{
