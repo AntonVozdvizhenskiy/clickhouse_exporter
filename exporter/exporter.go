@@ -152,7 +152,7 @@ func (e *Exporter) collect(ch chan<- prometheus.Metric) error {
 		ch <- newMetric
 	}
 
-    dicts, err := e.parseKeyValueResponse(dictonaryElementCountyURI)
+    dicts, err := e.parseKeyValueResponse(e.dictonaryElementCountyURI)
 	if err != nil {
 		return fmt.Errorf("Error scraping clickhouse url %v: %v", e.dictonaryElementCountyURI, err)
 	}
